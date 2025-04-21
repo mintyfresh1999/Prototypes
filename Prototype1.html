@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mood Slider Project</title>
+    <style>
+        /* Basic styles */
+        :root {
+            --spacing-unit: 8px;
+            --border-radius-container: 12px;
+            --border-radius-element: 6px;
+            --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 16px;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            background-color: #f0f4f8; /* Light background */
+            padding: calc(var(--spacing-unit) * 3);
+            color: #34495e; /* Default text color */
+            line-height: 1.6;
+        }
+
+        /* Container */
+        .mood-tracker-container {
+            background-color: #ffffff;
+            padding: calc(var(--spacing-unit) * 4) calc(var(--spacing-unit) * 5);
+            border-radius: var(--border-radius-container);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); /* Simpler shadow */
+            text-align: center;
+            width: 100%;
+            max-width: 580px;
+        }
+
+        /* Text */
+        h2 {
+            margin-top: 0;
+            color: #2c3e50; /* Darker heading */
+            margin-bottom: var(--spacing-unit);
+            font-size: 1.6rem;
+            font-weight: 600;
+        }
+
+        .current-date {
+            font-size: 1rem;
+            color: #7f8c8d; /* Lighter date */
+            margin-bottom: calc(var(--spacing-unit) * 3.5);
+        }
+
+        /* Slider */
+        .slider-wrapper {
+            display: flex;
+            align-items: center;
+            gap: calc(var(--spacing-unit) * 2);
+            margin-bottom: calc(var(--spacing-unit) * 2.5);
+        }
+
+        .label-min, .label-max {
+            color: #555;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        #moodSlider {
+            flex-grow: 1; width: 100%; height: 12px; cursor: pointer; appearance: none;
+            background: linear-gradient(to right, #dce4ec 50%, #ecf0f1 50%); /* Default track color */
+            border-radius: var(--border-radius-element); outline: none; transition: background 0.15s ease-in-out;
+        }
+        #moodSlider:disabled { cursor: not-allowed; opacity: 0.6; }
+
+        /* Slider Thumb */
+        #moodSlider::-webkit-slider-thumb {
+            appearance: none; width: 24px; height: 24px; background: #3498db; /* Blue thumb */
+            border-radius: 50%; cursor: pointer; border: 3px solid #ffffff; /* White border */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); margin-top: -6px;
+            transition: background-color 0.2s ease;
+        }
+        #moodSlider:disabled::-webkit-slider-thumb { cursor: not-allowed; background: #bdc3c7; box-shadow: none; }
+
+        #moodSlider::-moz-range-thumb {
+            width: 18px; height: 18px; background: #3498db; border-radius: 50%;
+            cursor: pointer; border: 3px solid #ffffff; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.2s ease;
+        }
+        #moodSlider:disabled::-moz-range-thumb { cursor: not-allowed; background: #bdc3c7; box-shadow: none; }
+        #moodSlider::-moz-range-track { background: #ecf0f1; border-radius: var(--border-radius-element); }
+
+        /* Current Mood Display */
+        .mood-display {
+            margin-top: calc(var(--spacing-unit) * 2);
+            margin-bottom: calc(var(--spacing-unit) * 3);
+            min-height: 120px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        #moodEmoji {
+            font-size: 3.8rem;
+            line-height: 1.1; margin-bottom: calc(var(--spacing-unit) * 0.5);
+            transition: transform 0.2s ease-in-out; /* Simpler transition */
+        }
+        #moodText {
+            font-size: 1.3rem; font-weight: 600; color: #2c3e50;
+            min-height: 1.5em; margin-bottom: calc(var(--spacing-unit) * 0.5);
+        }
+        #moodPercentage { font-size: 1rem; color: #7f8c8d; }
+
+        /* Button */
+        .action-button {
+            display: inline-block; color: white; padding: 12px 30px; border: none;
+            border-radius: 50px; /* Round button */
+            font-size: 1rem; font-weight: 600; cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            margin-bottom: calc(var(--spacing-unit) * 4);
+            min-width: 190px;
+            text-align: center;
+        }
+        .action-button.save { background-color: #2ecc71; } /* Green */
+        .action-button.save:hover { background-color: #27ae60; }
+        .action-button.edit { background-color: #e67e22; } /* Orange */
+        .action-button.edit:hover { background-color: #d35400; }
+        .action-button.saving { background-color: #3498db; } /* Blue */
+        .action-button.saving:hover { background-color: #2980b9; }
+        .action-button:active { transform: scale(0.97); }
+        .action-button:disabled { background-color: #bdc3c7; cursor: not-allowed; transform: scale(1); }
+
+        /* History Section */
+        .past-moods-container {
+            border-top: 1px solid #ecf0f1; /* Light separator */
+            padding-top: calc(var(--spacing-unit) * 3);
+            margin-top: calc(var(--spacing-unit) * 2.5);
+        }
+
+        .past-moods-container h3 {
+            font-size: 1.2rem; font-weight: 600; color: #2c3e50;
+            margin: 0 0 calc(var(--spacing-unit) * 2) 0;
+            text-align: left;
+        }
+
+        /* History Table */
+        .past-moods-table-wrapper {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ecf0f1;
+            border-radius: var(--border-radius-element);
+            margin-bottom: var(--spacing-unit);
+        }
+
+        .past-moods-table {
+            width: 100%; border-collapse: collapse; font-size: 0.95rem;
+        }
+
+        .past-moods-table th,
+        .past-moods-table td {
+            padding: calc(var(--spacing-unit) * 1.5) calc(var(--spacing-unit) * 1.75);
+            text-align: left; border-bottom: 1px solid #ecf0f1;
+            vertical-align: middle;
+        }
+
+        .past-moods-table th {
+            background-color: #f8f9fa;
+            font-weight: 600; color: #34495e;
+            position: sticky; top: 0; z-index: 1; /* Keep header */
+            border-bottom-width: 2px;
+            border-bottom-color: #ecf0f1;
+        }
+
+        .past-moods-table tbody tr:last-child td { border-bottom: none; }
+        /* Removed hover effect */
+
+        /* Table Columns */
+        .past-moods-table th:nth-child(1),
+        .past-moods-table td:nth-child(1) { /* Date */
+            width: 45%;
+            color: #7f8c8d;
+        }
+        .past-moods-table th:nth-child(2),
+        .past-moods-table td:nth-child(2) { /* Mood */
+            text-align: center;
+            width: 20%;
+            /* Font size consistency kept */
+        }
+        .past-moods-table th:nth-child(3),
+        .past-moods-table td:nth-child(3) { /* Value */
+            text-align: right;
+            width: 35%;
+            font-weight: 500;
+            color: #34495e;
+            padding-right: calc(var(--spacing-unit) * 2);
+        }
+
+        /* No Moods Message */
+        #noPastMoodsMessage {
+            display: none;
+            color: #7f8c8d; font-style: italic;
+            text-align: center; padding: calc(var(--spacing-unit) * 3) 0;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="mood-tracker-container">
+        <h2>Daily Mood Check-in</h2>
+        <div class="current-date" id="currentDate">Loading date...</div>
+
+        <div class="slider-wrapper">
+            <span class="label-min">Very Bad</span>
+            <input type="range" id="moodSlider" min="0" max="100" value="50" disabled>
+            <span class="label-max">Excellent</span>
+        </div>
+
+        <div class="mood-display">
+            <div id="moodEmoji">⏳</div>
+            <div id="moodText">Loading...</div>
+            <div id="moodPercentage">--%</div>
+        </div>
+
+        <button class="action-button" id="actionButton" disabled>Loading...</button>
+
+        <div class="past-moods-container">
+            <h3>Recent Moods</h3>
+            <div class="past-moods-table-wrapper">
+                <table class="past-moods-table" id="pastMoodsTable">
+                    <thead>
+                        <tr>
+                            <th scope="col">Date</th>
+                            <th scope="col">Mood</th>
+                            <th scope="col">Value</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pastMoodsTableBody">
+                        <!-- history goes here -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="noPastMoodsMessage">
+                No moods logged yet.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Get stuff from the page ---
+        const slider = document.getElementById('moodSlider');
+        const emojiDisplay = document.getElementById('moodEmoji');
+        const textDisplay = document.getElementById('moodText');
+        const percentageDisplay = document.getElementById('moodPercentage');
+        const actionButton = document.getElementById('actionButton');
+        const currentDateDisplay = document.getElementById('currentDate');
+        const pastMoodsTableBody = document.getElementById('pastMoodsTableBody');
+        const noPastMoodsMessage = document.getElementById('noPastMoodsMessage');
+        const pastMoodsTableWrapper = document.querySelector('.past-moods-table-wrapper');
+
+        // --- Settings ---
+        const storageKey = 'myDailyMoods'; // Simpler name
+        const demoDataDoneFlag = 'moodDemoDone'; // Simpler flag name
+        const MAX_PAST_DAYS_TO_SHOW = 5;
+        const NUM_DEMO_DAYS = 7;
+
+        // --- Mood levels ---
+        const moods = [
+             { threshold: 0,   text: "Very Bad",  emoji: "😭", colorHue: 0 },
+             { threshold: 15,  text: "Not Well",  emoji: "😞", colorHue: 20 },
+             { threshold: 35,  text: "A Bit Down",emoji: "😕", colorHue: 40 },
+             { threshold: 45,  text: "Okay",      emoji: "😐", colorHue: 60 },
+             { threshold: 65,  text: "Good",      emoji: "🙂", colorHue: 90 },
+             { threshold: 85,  text: "Great!",    emoji: "😄", colorHue: 120 },
+             { threshold: 95,  text: "Excellent!",emoji: "🥳", colorHue: 140 }
+         ];
+
+        // --- Helper Functions ---
+        function getMoodVisuals(value) {
+            let currentMood = moods[0];
+            for (let i = moods.length - 1; i >= 0; i--) {
+                if (value >= moods[i].threshold) {
+                    currentMood = moods[i];
+                    break;
+                }
+            }
+            const hue = Math.round((value / 100) * 120);
+            const gradientColor = `hsl(${hue}, 85%, 60%)`;
+            return { ...currentMood, gradientColor };
+        }
+
+        // Function to format dates nicely
+        function formatDate(date, type = 'header') {
+             if (type === 'table') {
+                 return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+             }
+             // Default to header format
+             return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        // Get YYYY-MM-DD string for keys
+        function getDateKey(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        // Check if it's a weekend day
+        function isWeekend(date) {
+            const day = date.getUTCDay(); // 0 = Sunday, 6 = Saturday
+            return day === 0 || day === 6;
+        }
+
+        // --- Main Functions ---
+
+        // Updates the emoji, text, percent, and slider color
+        function updateMoodDisplay() {
+             const value = parseInt(slider.value);
+             const visuals = getMoodVisuals(value);
+
+             percentageDisplay.textContent = `${value}%`;
+             emojiDisplay.textContent = visuals.emoji;
+             textDisplay.textContent = visuals.text;
+             slider.style.background = `linear-gradient(to right, ${visuals.gradientColor} ${value}%, #ecf0f1 ${value}%)`;
+
+             // Little bounce effect if user is changing it
+             if (!slider.disabled) {
+                 emojiDisplay.style.transform = 'scale(1.1)';
+                 setTimeout(() => { emojiDisplay.style.transform = 'scale(1)'; }, 150);
+             }
+        }
+
+        // Get saved moods from browser storage
+        function loadMoodsFromStorage() {
+            try {
+                const storedMoods = localStorage.getItem(storageKey);
+                return storedMoods ? JSON.parse(storedMoods) : [];
+            } catch (e) {
+                console.error("Couldn't read moods from storage:", e);
+                return []; // Return empty if error
+            }
+        }
+
+        // Save mood to browser storage
+        function saveMoodToStorage(dateKey, value) {
+            let allMoods = loadMoodsFromStorage();
+            const existingIndex = allMoods.findIndex(mood => mood.date === dateKey);
+
+            if (existingIndex > -1) {
+                console.log("Updating mood for", dateKey);
+                allMoods[existingIndex].value = value; // Update if already exists
+            } else {
+                allMoods.push({ date: dateKey, value: value }); // Add new one
+            }
+            // Keep sorted by date
+            allMoods.sort((a, b) => b.date.localeCompare(a.date));
+
+            try {
+                localStorage.setItem(storageKey, JSON.stringify(allMoods));
+                return true;
+            } catch (e) {
+                console.error("Couldn't save mood:", e);
+                alert("Oops, couldn't save your mood. Storage might be full?");
+                return false;
+            }
+        }
+
+        // Put some fake data in if storage is empty, just for looks
+        function populateInitialDemoData() {
+            if (localStorage.getItem(demoDataDoneFlag) || loadMoodsFromStorage().length > 0) {
+                return; // Don't run if already done or has real data
+            }
+
+            console.log("Adding some demo mood data...");
+            const demoMoods = [];
+            let currentDate = new Date();
+            let addedCount = 0;
+
+            for (let i=0; addedCount < NUM_DEMO_DAYS && i < 30; i++) { // Limit loop just in case
+                currentDate.setUTCDate(currentDate.getUTCDate() - 1);
+                const dateKey = getDateKey(currentDate);
+                // Need to check weekend using a proper date object
+                 if (!isWeekend(new Date(dateKey + 'T12:00:00Z'))) {
+                    const randomValue = Math.max(10, Math.min(95, Math.floor(Math.random() * 90) + 5));
+                    demoMoods.push({ date: dateKey, value: randomValue });
+                    addedCount++;
+                 }
+            }
+
+            demoMoods.sort((a, b) => b.date.localeCompare(a.date));
+
+            try {
+                localStorage.setItem(storageKey, JSON.stringify(demoMoods));
+                localStorage.setItem(demoDataDoneFlag, 'true'); // Mark as done
+            } catch (e) {
+                console.error("Couldn't save demo data:", e);
+            }
+        }
+
+        // Put the past moods into the table
+        function renderPastMoods() {
+            const allMoods = loadMoodsFromStorage();
+            const todayKey = getDateKey(new Date());
+            pastMoodsTableBody.innerHTML = ''; // Clear old rows
+
+            const relevantMoods = allMoods
+                .filter(mood => {
+                    if (mood.date === todayKey) return false; // skip today
+                    try {
+                        // Check weekend using midday UTC date
+                        return !isWeekend(new Date(mood.date + 'T12:00:00Z'));
+                    } catch(e) { return false; } // Ignore if date is weird
+                })
+                .slice(0, MAX_PAST_DAYS_TO_SHOW); // Only show the last few
+
+            // Show/hide table or message
+            if (relevantMoods.length === 0) {
+                 pastMoodsTableWrapper.style.display = 'none';
+                 noPastMoodsMessage.style.display = 'block';
+                 return;
+            } else {
+                 pastMoodsTableWrapper.style.display = 'block';
+                 noPastMoodsMessage.style.display = 'none';
+            }
+
+            // Add rows to the table
+            relevantMoods.forEach(mood => {
+                const value = mood.value;
+                const visuals = getMoodVisuals(value);
+                const entryDate = new Date(mood.date + 'T12:00:00Z'); // For formatting
+
+                const row = pastMoodsTableBody.insertRow();
+                row.insertCell().textContent = formatDate(entryDate, 'table'); // Date cell
+                row.insertCell().textContent = visuals.emoji;           // Emoji cell
+                row.insertCell().textContent = `${value}%`;              // Value cell
+            });
+        }
+
+        // Change how the button looks and if slider is active
+        function setButtonState(state) {
+            actionButton.classList.remove('save', 'edit', 'saving');
+            actionButton.disabled = false;
+            slider.disabled = true; // Usually disabled unless saving/editing
+
+            if (state === 'save') {
+                actionButton.textContent = 'Save Today\'s Mood';
+                actionButton.classList.add('save');
+                slider.disabled = false;
+            } else if (state === 'edit') {
+                actionButton.textContent = 'Edit Mood';
+                actionButton.classList.add('edit');
+                // Keep slider disabled
+            } else if (state === 'saving') {
+                actionButton.textContent = 'Save Changes';
+                actionButton.classList.add('saving');
+                slider.disabled = false; // Enable for editing
+                slider.focus();
+            } else { // Loading state
+                actionButton.textContent = 'Loading...';
+                actionButton.disabled = true;
+            }
+        }
+
+        // Runs when the main button is clicked
+        function handleActionClick() {
+            // Check button's current purpose based on its class
+            let currentAction = 'loading';
+            if (actionButton.classList.contains('save')) currentAction = 'save';
+            else if (actionButton.classList.contains('saving')) currentAction = 'saving';
+            else if (actionButton.classList.contains('edit')) currentAction = 'edit';
+
+            if (currentAction === 'save' || currentAction === 'saving') {
+                const todayKey = getDateKey(new Date());
+                const currentValue = parseInt(slider.value);
+                // Try to save, if successful, switch button to 'edit' mode
+                if (saveMoodToStorage(todayKey, currentValue)) {
+                    setButtonState('edit');
+                    renderPastMoods(); // Update list
+                }
+            } else if (currentAction === 'edit') {
+                // Switch button to 'saving' mode (enables slider)
+                setButtonState('saving');
+            }
+        }
+
+        // Check if mood was already saved for today when page loads
+        function checkAndSetTodaysMood() {
+             const allMoods = loadMoodsFromStorage();
+             const todayKey = getDateKey(new Date());
+             const todaysMood = allMoods.find(mood => mood.date === todayKey);
+
+             if (todaysMood) {
+                 slider.value = todaysMood.value; // Load saved value
+                 setButtonState('edit');           // Show edit button
+             } else {
+                 // Keep default slider value (50)
+                 setButtonState('save');           // Show save button
+             }
+             // Update the display based on initial value
+             updateMoodDisplay();
+        }
+
+        // --- Set everything up ---
+        function initializeApp() {
+            setButtonState('loading'); // Start in loading state
+
+            currentDateDisplay.textContent = formatDate(new Date()); // Show today's date
+
+            // Listen for slider changes and button clicks
+            slider.addEventListener('input', updateMoodDisplay);
+            actionButton.addEventListener('click', handleActionClick);
+
+            // Add fake data if needed
+            populateInitialDemoData();
+
+            // Show past moods table
+            renderPastMoods();
+            // Check if today's mood is saved and set slider/button
+            checkAndSetTodaysMood();
+
+            // (No final console log)
+        }
+
+        // Run the setup function
+        initializeApp();
+
+    </script>
+
+</body>
+</html>
